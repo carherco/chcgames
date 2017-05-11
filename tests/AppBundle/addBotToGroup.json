@@ -1,0 +1,29 @@
+{
+    "update_id":545915716,
+    "message":{
+        "message_id":35,
+        "from":{
+            "id":15054302,
+            "first_name":"Carlos",
+            "last_name":"Herrera"
+        },
+        "chat":{
+            "id":-245140800,
+            "title":"Pruebas dixit",
+            "type":"group",
+            "all_members_are_administrators":true
+        },
+        "date":1494494883,
+        "new_chat_participant":{
+            "id":333269373,
+            "first_name":"Dixit Bot",
+            "username":"DixitGameBot"
+        },
+        "new_chat_member":{
+            "id":333269373,
+            "first_name":"Dixit Bot",
+            "username":"DixitGameBot"
+        },
+        "new_chat_members":[{"id":333269373,"first_name":"Dixit Bot","username":"DixitGameBot"}]
+    }
+}
