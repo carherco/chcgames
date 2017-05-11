@@ -97,9 +97,18 @@ print_r($command);
         $telegram_user_id = $params['message']['from']['id'];
         $telegram_user_name = $params['message']['from']['first_name'].' '.$params['message']['from']['last_name'];
         $chat_id = $params['message']['chat']['id'];
-        $nombre = 'Partida de prueba';
         
-        //@TODO: Primero se debería buscar al usuario por si ya existe
+        if($params['message']['chat']['type']!=="group"){
+            $output = array();
+            $output['method'] = 'sendMessage';
+            $output['chat_id'] = $chat_id;
+            $output['text'] = 'Solamente puedes crear partidas en grupos';    
+            return $output;
+        }
+        
+        $chat_title = $params['message']['chat']['title'];
+        
+        //Primero se debería buscar al usuario por si ya existe
         $usuarioRepository = $this->getDoctrine()->getRepository('AppBundle:ChcUsuarios');
         $usuario = $usuarioRepository->findOneBy(array('plataforma_id' => $telegram_user_id));
         
@@ -113,19 +122,25 @@ print_r($command);
         
         $juegoRepository = $this->getDoctrine()->getRepository('AppBundle:ChcJuegos');
         $juego = $juegoRepository->find(4);
-       
-        $partida = new ChcPartidas();
-        $partida->setJuego($juego);
-        $partida->setNombre($nombre);
-        $partida->setUsuario($usuario); 
-        $partida->setEstado(0);
-        $this->em->persist($partida);
+        
+        $partidasRepository = $this->getDoctrine()->getRepository('AppBundle:ChcPartidas');
+        $partida = $partidasRepository->findOneBy(array('telegram_group_id' => $chat_id));
+        
+        if(!$partida){
+            $partida = new ChcPartidas();
+            $partida->setJuego($juego);
+            $partida->setTelegramGroupId($chat_id);
+            $partida->setNombre($chat_title);
+            $partida->setUsuario($usuario); 
+            $partida->setEstado(0);
+            $this->em->persist($partida);
+            
+            $participante = new ChcParticipantes();
+            $participante->setUsuario($usuario);
+            $participante->setPartida($partida);
+            $this->em->persist($participante);
+        }
 
-        $participante = new ChcParticipantes();
-        $participante->setUsuario($usuario);
-        $participante->setPartida($partida);
-        $this->em->persist($participante);
-      
         $this->em->flush();
         
         $output = array();

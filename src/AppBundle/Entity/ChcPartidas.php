@@ -54,7 +54,13 @@ class ChcPartidas
      * })
      */
     private $juego;
-
+    
+    /**
+     * @var integer
+     *
+     * @ORM\Column(name="telegram_group_id", type="integer", nullable=true)
+     */
+    private $telegram_group_id;
 
 
     /**
@@ -162,4 +168,15 @@ class ChcPartidas
     {
         return $this->juego;
     }
+    
+    public function getTelegramGroupId() {
+        return $this->telegram_group_id;
+    }
+
+    public function setTelegramGroupId($telegram_group_id) {
+        $this->telegram_group_id = $telegram_group_id;
+        return $this;
+    }
+
+
 }
