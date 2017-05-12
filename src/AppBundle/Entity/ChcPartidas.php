@@ -56,12 +56,27 @@ class ChcPartidas
     private $juego;
     
     /**
+     * @var array
+     * 
+     * @ORM\OneToMany(targetEntity="AppBundle\Entity\ChcParticipantes", mappedBy="partida")
+     */
+    private $participantes;
+    
+    
+    /**
      * @var integer
      *
      * @ORM\Column(name="telegram_group_id", type="integer", nullable=true)
      */
     private $telegram_group_id;
 
+    
+    
+    
+    public function __construct()
+    {
+        $this->$participantes = new ArrayCollection();
+    }
 
     /**
      * Set nombre
@@ -177,6 +192,14 @@ class ChcPartidas
         $this->telegram_group_id = $telegram_group_id;
         return $this;
     }
+    
+    public function getParticipantes() {
+        return $this->participantes;
+    }
 
+    public function setParticipantes($participantes) {
+        $this->participantes = $participantes;
+        return $this;
+    }
 
 }

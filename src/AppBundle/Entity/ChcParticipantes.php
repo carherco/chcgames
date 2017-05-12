@@ -8,7 +8,7 @@ use Doctrine\ORM\Mapping as ORM;
  * ChcParticipantes
  *
  * @ORM\Table(name="chc_participantes", indexes={@ORM\Index(name="id_partida", columns={"id_partida", "id_usuario"}), @ORM\Index(name="id_usuario", columns={"id_usuario"})})
- * @ORM\Entity
+ * @ORM\Entity(repositoryClass="AppBundle\Repository\ChcParticipantesRepository")
  */
 class ChcParticipantes
 {
@@ -24,7 +24,7 @@ class ChcParticipantes
     /**
      * @var \AppBundle\Entity\ChcPartidas
      *
-     * @ORM\ManyToOne(targetEntity="AppBundle\Entity\ChcPartidas")
+     * @ORM\ManyToOne(targetEntity="AppBundle\Entity\ChcPartidas", inversedBy="participantes")
      * @ORM\JoinColumns({
      *   @ORM\JoinColumn(name="id_partida", referencedColumnName="id")
      * })

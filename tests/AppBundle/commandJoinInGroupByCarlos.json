@@ -1,0 +1,20 @@
+{
+    "update_id":545915717,
+    "message":{
+        "message_id":37,
+        "from":{
+            "id":15054302,
+            "first_name":"Carlos",
+            "last_name":"Herrera"
+        },
+        "chat":{
+            "id":-245140800,
+            "title":"Pruebas dixit",
+            "type":"group",
+            "all_members_are_administrators":true
+        },
+        "date":1494508985,
+        "text":"/join",
+        "entities":[{"type":"bot_command","offset":0,"length":5}]
+    }
+}

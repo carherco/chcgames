@@ -29,37 +29,26 @@ class DixitBotController extends Controller
             $response->setStatusCode(500,'Empty request');
             return $response;
         }
-   
-        $command = $params['message']['text'];
+         
         $this->em = $this->getDoctrine()->getManager();
-print_r($command);                
+        
+        $command = $params['message']['text'];       
         switch ($command) {
             case "/new":
                 $output = $this->newGame($params);
-                echo "hola"; print_r($output);
                 break;
             case "/join":
-//                $output = $this->joinGame($params);
-                $chat_id = $params['message']['chat']['id'];
-                $output = array();
-                $output['method'] = 'sendMessage';
-                $output['chat_id'] = $chat_id;
-                $output['text'] = 'Hola. Has utilizado el comando /join';
+                $output = $this->joinGame($params); 
                 break;
             case "/start":
-//                $output = $this->startGame($params);
-                $chat_id = $params['message']['chat']['id'];
-                $output = array();
-                $output['method'] = 'sendMessage';
-                $output['chat_id'] = $chat_id;
-                $output['text'] = 'Hola. Has utilizado el comando /start';
+                $output = $this->startGame($params);
                 break;
             default:
                 $chat_id = $params['message']['chat']['id'];
                 $output = array();
                 $output['method'] = 'sendMessage';
                 $output['chat_id'] = $chat_id;
-                $output['text'] = 'Hola. Has utilizado el comando '.$command;
+                $output['text'] = 'Lo siento, no he reconocido el comando.';
                 break;
         }
 
@@ -143,75 +132,103 @@ print_r($command);
 
         $this->em->flush();
         
+        $partida = $partidasRepository->findOneBy(array('telegram_group_id' => $chat_id));
+        
         $output = array();
         $output['method'] = 'sendMessage';
         $output['chat_id'] = $chat_id;
         $output['text'] = 'Partida creada. Quien quiera jugar debe apuntarse con el comando /join'.PHP_EOL;
-        $output['text'].= 'Usuarios apuntados:'.PHP_EOL;
-        $output['text'].= $telegram_user_name.PHP_EOL;
+      
+        $participantes = $partida->getParticipantes();
+        if(count($participantes)>0){
+            $output['text'].= 'Usuarios apuntados: '.count($participantes).PHP_EOL;
+            foreach($participantes as $participante){
+                $output['text'].= $participante->getUsuario()->getNombre().PHP_EOL;
+            }
+        }
         
         return $output;
       
     }
        
     private function joinGame($params){
-        $user_id = $this->id_jugador;
+        $telegram_user_id = $params['message']['from']['id'];
+        $telegram_user_name = $params['message']['from']['first_name'].' '.$params['message']['from']['last_name'];
+        $chat_id = $params['message']['chat']['id'];
         
-        $partida_id = $request->getParameter('partida_id');
-        if(is_null($partida_id)) {
-            $this->redirect('@dashboard');
+        if($params['message']['chat']['type']!=="group"){
+            $output = array();
+            $output['method'] = 'sendMessage';
+            $output['chat_id'] = $chat_id;
+            $output['text'] = 'Solamente puedes crear partidas en grupos';    
+            return $output;
         }
         
-        //Comprobamos que el usuario NO participa en dicha partida
-        $criteria = new Criteria();
-        $criteria->add(ChcParticipantePeer::ID_PARTIDA,$partida_id);
-        $criteria->add(ChcParticipantePeer::ID_USUARIO,$user_id);
-        $participante = ChcParticipantePeer::doSelectOne($criteria);
-        if(!$participante instanceof ChcParticipante){
-            $participacion = new ChcParticipante();
-            $participacion->setIdPartida($partida_id);
-            $participacion->setIdUsuario($user_id);
-            $participacion->save();
+        $chat_title = $params['message']['chat']['title'];
+        
+        //Primero se debería buscar al usuario por si ya existe
+        $usuarioRepository = $this->getDoctrine()->getRepository('AppBundle:ChcUsuarios');
+        $usuario = $usuarioRepository->findOneBy(array('plataforma_id' => $telegram_user_id));
+        
+        if(!$usuario){
+            $usuario = new ChcUsuarios();
+            $usuario->setNombre($telegram_user_name);
+            $usuario->setPlataforma('Telegram');
+            $usuario->setPlataforma_id($telegram_user_id);
+            $this->em->persist($usuario);
         }
+        
+        $juegoRepository = $this->getDoctrine()->getRepository('AppBundle:ChcJuegos');
+        $juego = $juegoRepository->find(4);
+        
+        $partidasRepository = $this->getDoctrine()->getRepository('AppBundle:ChcPartidas');
+        $partida = $partidasRepository->findOneBy(array('telegram_group_id' => $chat_id));
+        
+        if(!$partida){
+            $output = array();
+            $output['method'] = 'sendMessage';
+            $output['chat_id'] = $chat_id;
+            $output['text'] = 'Primero se debe crear una partida con el comando /new';    
+            return $output;
+        }
+        
+        $participantesRepository = $this->getDoctrine()->getRepository('AppBundle:ChcParticipantes');
+        $participantes = $participantesRepository->findOneByPartidaAndUsuario($partida, $usuario);
+        
+        if(!$participantes){
+            $participante = new ChcParticipantes();
+            $participante->setUsuario($usuario);
+            $participante->setPartida($partida);
+            $this->em->persist($participante);
+        }
+
+        $this->em->flush();
+        
+        
+        $partida = $partidasRepository->findOneBy(array('telegram_group_id' => $chat_id));
+        
+        $output = array();
+        $output['method'] = 'sendMessage';
+        $output['chat_id'] = $chat_id;
+        $output['text'] = 'Enhorabuena, te has unido a la partida.'.PHP_EOL;
+      
+        $participantes = $partida->getParticipantes();
+        if(count($participantes)>0){
+            $output['text'].= 'Usuarios apuntados: '.count($participantes).PHP_EOL;
+            foreach($participantes as $participante){
+                $output['text'].= $participante->getUsuario()->getNombre().PHP_EOL;
+            }
+        }
+
+        return $output;
     }
     
     private function startGame($params){
-        //Comprobamos que hay un usuario en la sesión
-        $user_id = $this->getUser()->getAttribute('user_id');
-        if(is_null($user_id)) {
-            $this->redirect('@homepage');
-        }
-        
-        //Comprobamos que ha venido un id de partida por la request
-        $partida_id = $request->getParameter('partida_id');
-        if(is_null($partida_id)) {
-            $this->redirect('@dashboard');
-        }
-               
-        //Comprobamos que el usuario participa en dicha partida
-        $criteria = new Criteria();
-        $criteria->add(ChcParticipantePeer::ID_PARTIDA,$partida_id);
-        $criteria->add(ChcParticipantePeer::ID_USUARIO,$user_id);
-        $participante = ChcParticipantePeer::doSelectOne($criteria);
-        if(!$participante instanceof ChcParticipante){
-            $this->redirect('@dashboard'); 
-        }
-       
+
         //Guardamos en la sesión el partida_id seleccionado
         $partida = ChcPartidaPeer::retrieveByPK($partida_id);
-        if(!$partida instanceof ChcPartida){
-            $this->redirect('@dashboard'); 
-        }
-        elseif($partida->getEstado() != 0){
-            $this->redirect('@dashboard'); 
-        }
-        else
-        {
-            $this->getUser()->setAttribute('partida_id',$partida_id);
-        }
         
         //Creamos el juego 
-        
         $juego = JuegosManager::create($partida);
         $juego->start();
         $this->redirect($juego->getDashboardRoute());
